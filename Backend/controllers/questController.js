@@ -1,11 +1,6 @@
 // questController.js
-<<<<<<< HEAD
-import { supabase } from '../supabaseClient.js';
 import { addXP } from '../util/levelsystem.js';
-=======
 import { supabase } from '../Supabase/supabaseClient.js'
-import { addXP } from '../progression/levelsystem.js';
->>>>>>> e20115b188181527db13587949d1a3baf10bd571
 
 const xpTable = {
   strength: { light: 10, medium: 25, heavy: 50 },
@@ -18,88 +13,22 @@ const XP_CAP = 50;
 
 function calculateXp(categories = [], difficulties = {}) {
   let totalXp = 0;
-
   for (const category of categories) {
     const difficulty = difficulties[category] || 'easy';
     const xp = xpTable[category]?.[difficulty] ?? 10;
     totalXp += xp;
   }
-  return Math.min(totalXp, XP_CAP)
+  return Math.min(totalXp, XP_CAP);
 }
 
-// 🆕 1. Hero applies to a quest
-export async function offerToHelp({ heroId, questId }) {
-  const { error } = await supabase.from('quest_offers').insert({
-    hero_id: heroId,
-    quest_id: questId,
-    status: 'pending',
-  });
-
-  if (error) {
-    console.error('Error offering to help:', error.message);
-  } else {
-    console.log('Hero offer submitted and pending approval.');
-  }
-}
-
-// 🆕 2. Requester approves a hero for their quest
-export async function approveHeroOffer({ questId, heroId }) {
-  // Mark all offers for this quest as rejected
-  const { error: rejectError } = await supabase
-    .from('quest_offers')
-    .update({ status: 'rejected' })
-    .eq('quest_id', questId)
-    .neq('hero_id', heroId);
-
-  // Set approved hero's offer to accepted
-  const { error: acceptError } = await supabase
-    .from('quest_offers')
-    .update({ status: 'accepted' })
-    .eq('quest_id', questId)
-    .eq('hero_id', heroId);
-
-  // Assign hero to the quest
-  const { error: assignError } = await supabase
-    .from('quests')
-    .update({
-      assigned_hero_id: heroId,
-      status: 'assigned',
-    })
-    .eq('id', questId);
-
-  if (assignError) {
-    console.error('Error assigning hero:', assignError.message);
-  } else {
-    console.log(`Hero ${heroId} approved and assigned to quest.`);
-  }
-}
-
-// 🆗 View pending hero offers for a specific quest
-export async function getPendingOffersForQuest(questId) {
-  const { data, error } = await supabase
-    .from('quest_offers')
-    .select('hero_id, created_at')
-    .eq('quest_id', questId)
-    .eq('status', 'pending');
-
-  if (error) {
-    console.error('Error fetching offers:', error.message);
-    return [];
+// 🎯 Create a quest
+export const createQuest = async (req, res) => {
+  const { title, description, categories, difficulties, requesterId } = req.body;
+  if (!title || !categories || !requesterId) {
+    return res.status(400).json({ success: false, error: 'Missing required fields.' });
   }
 
-  return data;
-}
-
-// 🎯 Create a new quest
-export async function createQuest({
-  title,
-  description,
-  categories,
-  difficulties,
-  requesterId,
-}) {
   const xp = calculateXp(categories, difficulties);
-
   const { error } = await supabase.from('quests').insert({
     title,
     description,
@@ -111,59 +40,127 @@ export async function createQuest({
   });
 
   if (error) {
-    console.error('Error creating quest:', error.message);
-  } else {
-    console.log('Quest successfully created.');
+    console.error('Create Quest Error:', error.message);
+    return res.status(500).json({ success: false, error: error.message });
   }
-}
+
+  return res.status(201).json({ success: true, message: 'Quest created successfully.' });
+};
+
+// 🧝 Hero applies to help
+export const offerToHelp = async (req, res) => {
+  const { heroId, questId } = req.body;
+  if (!heroId || !questId) {
+    return res.status(400).json({ success: false, error: 'Missing hero or quest ID.' });
+  }
+
+  const { error } = await supabase.from('quest_offers').insert({
+    hero_id: heroId,
+    quest_id: questId,
+    status: 'pending',
+  });
+
+  if (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+
+  return res.status(200).json({ success: true, message: 'Offer submitted.' });
+};
+
+// 👑 Approve a hero
+export const approveHeroOffer = async (req, res) => {
+  const { questId, heroId } = req.body;
+  if (!questId || !heroId) {
+    return res.status(400).json({ success: false, error: 'Missing IDs.' });
+  }
+
+  const { error: rejectError } = await supabase
+    .from('quest_offers')
+    .update({ status: 'rejected' })
+    .eq('quest_id', questId)
+    .neq('hero_id', heroId);
+
+  const { error: acceptError } = await supabase
+    .from('quest_offers')
+    .update({ status: 'accepted' })
+    .eq('quest_id', questId)
+    .eq('hero_id', heroId);
+
+  const { error: assignError } = await supabase
+    .from('quests')
+    .update({ assigned_hero_id: heroId, status: 'assigned' })
+    .eq('id', questId);
+
+  if (assignError || acceptError || rejectError) {
+    return res.status(500).json({
+      success: false,
+      error: assignError?.message || acceptError?.message || rejectError?.message,
+    });
+  }
+
+  return res.status(200).json({ success: true, message: 'Hero approved and quest assigned.' });
+};
 
 // 📜 Get all open quests
-export async function getOpenQuests() {
+export const getOpenQuests = async (_req, res) => {
   const { data, error } = await supabase
     .from('quests')
     .select('*')
     .eq('status', 'open');
 
   if (error) {
-    console.error('Error fetching quests:', error.message);
-    return [];
+    return res.status(500).json({ success: false, error: error.message });
   }
 
-  return data;
-}
+  return res.status(200).json({ success: true, data });
+};
+
+// 🔍 Get pending hero offers for a quest
+export const getPendingOffersForQuest = async (req, res) => {
+  const { questId } = req.params;
+
+  const { data, error } = await supabase
+    .from('quest_offers')
+    .select('hero_id, created_at')
+    .eq('quest_id', questId)
+    .eq('status', 'pending');
+
+  if (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+
+  return res.status(200).json({ success: true, data });
+};
 
 // ✅ Complete quest + award XP
-// ✅ Mark quest complete + award XP using levelSystem
-export async function completeQuest({ questId, heroId }) {
+export const completeQuest = async (req, res) => {
+  const { questId, heroId } = req.body;
+  if (!questId || !heroId) {
+    return res.status(400).json({ success: false, error: 'Missing questId or heroId.' });
+  }
+
   const { data: questData, error: questError } = await supabase
     .from('quests')
     .select('xp')
     .eq('id', questId)
     .single();
 
-  if (questError) {
-    console.error('Error fetching quest XP:', questError.message);
-    return;
+  if (questError || !questData) {
+    return res.status(500).json({ success: false, error: questError?.message || 'Quest not found' });
   }
 
-  const questXp = questData.xp;
-
-  // Get user's current XP + level
   const { data: userData, error: userError } = await supabase
     .from('users')
     .select('xp, level')
     .eq('id', heroId)
     .single();
 
-  if (userError) {
-    console.error('Error fetching user:', userError.message);
-    return;
+  if (userError || !userData) {
+    return res.status(500).json({ success: false, error: userError?.message || 'User not found' });
   }
 
-  // Apply XP and handle level-up using your levelSystem logic
-  const updatedProgress = addXP({ xp: userData.xp, level: userData.level }, questXp);
+  const updatedProgress = addXP({ xp: userData.xp, level: userData.level }, questData.xp);
 
-  // Save updated progress
   const { error: updateUserError } = await supabase
     .from('users')
     .update({
@@ -173,26 +170,29 @@ export async function completeQuest({ questId, heroId }) {
     .eq('id', heroId);
 
   if (updateUserError) {
-    console.error('Error updating user XP:', updateUserError.message);
-    return;
+    return res.status(500).json({ success: false, error: updateUserError.message });
   }
 
-  // Mark quest complete
   const { error: updateQuestError } = await supabase
     .from('quests')
     .update({ status: 'completed' })
     .eq('id', questId);
 
   if (updateQuestError) {
-    console.error('Error marking quest complete:', updateQuestError.message);
-  } else {
-    console.log(`✅ Quest complete. ${questXp} XP awarded.`);
-    console.log(`Hero is now level ${updatedProgress.level} with ${updatedProgress.xp} XP.`);
+    return res.status(500).json({ success: false, error: updateQuestError.message });
   }
-}
 
+  return res.status(200).json({
+    success: true,
+    message: `Quest completed. ${questData.xp} XP awarded.`,
+    newLevel: updatedProgress.level,
+    remainingXP: updatedProgress.xp,
+  });
+};
 
-export async function fetchLatestQuest(requesterId) {
+// 🧪 Fetch latest quest by requester (for testing/dev only)
+export const fetchLatestQuest = async (req, res) => {
+  const { requesterId } = req.params;
 
   const { data, error } = await supabase
     .from('quests')
@@ -201,6 +201,9 @@ export async function fetchLatestQuest(requesterId) {
     .order('created_at', { ascending: false })
     .limit(1);
 
-  if (error || !data || data.length === 0) return null;
-  return data[0];
-}
+  if (error || !data || data.length === 0) {
+    return res.status(404).json({ success: false, error: 'No quests found.' });
+  }
+
+  return res.status(200).json({ success: true, data: data[0] });
+};
