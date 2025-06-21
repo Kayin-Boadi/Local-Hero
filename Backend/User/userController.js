@@ -1,4 +1,4 @@
-import { supabase } from './supabaseClient.js';
+import { supabase } from '../supabaseClient.js';
 
 const fetchUsers = async () => {
   const { data, error } = await supabase

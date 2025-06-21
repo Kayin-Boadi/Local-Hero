@@ -1,4 +1,3 @@
-// test.js
 import { config } from 'dotenv';
 config();
 
@@ -8,24 +7,27 @@ import {
   getPendingOffersForQuest,
   approveHeroOffer,
   completeQuest,
-} from './questController.js';
+} from '../QuestSystem/questController.js';
 
-const requesterId = '45806deb-778b-497b-bd96-70335b8160a1'; // Replace with a real user ID
-const heroId = '9b799ea2-9193-4cd0-9f97-240e0e999fd4';           // Replace with another user ID
+const requesterId = '45806deb-778b-497b-bd96-70335b8160a1';
+const heroId = '9b799ea2-9193-4cd0-9f97-240e0e999fd4';
 
 let createdQuestId = null;
 
 async function runTestFlow() {
-  console.log('🎯 Step 1: Creating Quest...');
+  console.log('🎯 Step 1: Creating Multi-Category Quest...');
   await createQuest({
     title: 'Purge the Hoarder\'s Dungeon',
-    description: 'Help organize a messy garage full of junk.',
-    category: 'agility',
-    difficulty: 'large',
+    description: 'Help organize a messy garage and carry out heavy items.',
+    categories: ['strength', 'agility'], // now an array
+    difficulties: {
+      strength: 'heavy',
+      agility: 'large'
+    },
     requesterId: requesterId,
   });
 
-  // You'd normally fetch this from Supabase, but let's manually grab the latest quest by this user
+  // Get the most recently created quest by this user
   const res = await fetchLatestQuest(requesterId);
   if (!res) {
     console.error('❌ Could not fetch created quest');
