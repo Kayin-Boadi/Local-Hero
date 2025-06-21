@@ -1,46 +1,44 @@
+// auth.js
 import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Initialize Supabase client
+// Init Supabase client
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_ANON_KEY
 );
 
-// SIGN UP FUNCTION
-export async function signUp(email, password) {
-  const { data, error } = await supabase.auth.signUp({ email, password });
+// SIGN UP + INSERT INTO USERS TABLE
+export async function signUpWithProfile(email, password, username, avatarUrl) {
+  const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+    email,
+    password,
+  });
 
-  if (error) {
-    console.error('Signup Error:', error.message);
+  if (signUpError) {
+    console.error('Signup Error:', signUpError.message);
     return;
   }
 
-  console.log('Signup successful:', data.user);
-}
+  const user = signUpData.user;
 
-// LOGIN FUNCTION
-export async function login(email, password) {
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  // Now insert into custom `users` table
+  const { error: insertError } = await supabase.from('users').insert({
+    id: user.id,
+    email: user.email,
+    username: username,
+    avatar_url: avatarUrl,
+    level: 1,
+    xp: 0,
+    gold: 0,
+    gear: ['Starter Sword'],
+  });
 
-  if (error) {
-    console.error('Login Error:', error.message);
+  if (insertError) {
+    console.error('Error inserting user profile:', insertError.message);
     return;
   }
 
-  console.log('Login successful!');
-  console.log('Access Token:', data.session.access_token);
-  console.log('User:', data.user);
-}
-
-// GET CURRENT USER FUNCTION
-export async function getUser() {
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error) {
-    console.error('Get User Error:', error.message);
-    return;
-  }
-
-  console.log('Current user:', user);
+  console.log('Signup + user profile created successfully!');
 }
