@@ -1,6 +1,6 @@
 // Backend/controllers/levelController.js
 import { supabase } from 'Backend/supabaseClient.js'
-import { addXP } from 'Backend/progression/levelsystem.js'
+import { addXP } from 'Backend/util/levelsystem.js'
 
 export async function updateUserProgress(req, res) {
   try {

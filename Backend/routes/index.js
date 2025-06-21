@@ -1,6 +1,6 @@
 import express from 'express';
 import userRoutes from './userRoutes.js'; // User related routes
-import levelRoutes from './levelRoutes.js'; // User related routes
+import levelRoutes from './levelRoutes.js'; // Level related routes
 
 
 
