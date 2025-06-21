@@ -188,11 +188,6 @@ export async function completeQuest({ questId, heroId }) {
 
 
 export async function fetchLatestQuest(requesterId) {
-  const { createClient } = await import('@supabase/supabase-js');
-  const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_ANON_KEY
-  );
 
   const { data, error } = await supabase
     .from('quests')
