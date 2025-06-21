@@ -52,7 +52,10 @@ export default function HomeScreen() {
           <Image source={{ uri: user.profilePic }} style={styles.avatar} />
           <View style={styles.profileInfo}>
             <Text style={styles.username}>{user.username}</Text>
-            <Text style={styles.level}>Level {user.level}</Text>
+            <View style={styles.levelBadge}>
+                <Text style={styles.levelBadgeText}>Level {user.level}</Text>
+            </View>
+
             <ProgressBar
               progress={user.xp / 100}
               width={null}
@@ -183,7 +186,25 @@ const styles = StyleSheet.create({
     color: '#555',
     marginBottom: 8,
   },
-  progressBar: {
+  levelBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFD700', // Gold-style background
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    },
+    levelBadgeText: {
+    color: '#222',
+    fontWeight: '700',
+    fontSize: 14,
+    },
+    progressBar: {
     marginTop: 4,
     borderRadius: 10,
     overflow: 'hidden',

@@ -4,6 +4,7 @@ dotenv.config();
 
 // SIGN UP + INSERT INTO USERS TABLE
 export async function signUpWithProfile(email, password, username, avatarUrl) {
+  console.log("Hi");
   try {
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email,

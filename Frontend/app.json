@@ -39,7 +39,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "Backend_Url": "http://192.168.1.129:5000"
+      "Backend_Url": "http://192.168.1.69:5000"
     }
   }
 }

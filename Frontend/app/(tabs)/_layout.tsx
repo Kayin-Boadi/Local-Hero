@@ -70,7 +70,7 @@ export default function TabLayout() {
           title: 'Explore',
           tabBarIcon: ({ color, focused }) => (
             <TabIconWrapper focused={focused} color={activeTint}>
-              <House
+              <Compass
                 color={focused ? activeTint : color}
                 weight={focused ? 'fill' : 'regular'}
                 size={24}
@@ -85,7 +85,7 @@ export default function TabLayout() {
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
             <TabIconWrapper focused={focused} color={activeTint}>
-              <Compass
+              <House
                 color={focused ? activeTint : color}
                 weight={focused ? 'fill' : 'regular'}
                 size={24}
