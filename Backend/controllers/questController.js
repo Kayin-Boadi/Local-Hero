@@ -1,5 +1,5 @@
 // questController.js
-import { supabase } from '../supabaseClient.js';
+import { supabase } from '../Supabase/supabaseClient.js'
 import { addXP } from '../progression/levelsystem.js';
 
 const xpTable = {
