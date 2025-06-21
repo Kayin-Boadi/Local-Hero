@@ -1,5 +1,6 @@
 // questController.js
-import { supabase } from './supabaseClient.js';
+import { supabase } from '../supabaseClient.js';
+import { addXP } from '../progression/levelsystem.js';
 
 const xpTable = {
   strength: { light: 10, medium: 25, heavy: 50 },
@@ -8,8 +9,17 @@ const xpTable = {
   endurance: { short: 10, medium: 25, long: 50 },
 };
 
-function calculateXp(category, difficultyLevel) {
-  return xpTable[category]?.[difficultyLevel] ?? 10;
+const XP_CAP = 50;
+
+function calculateXp(categories = [], difficulties = {}) {
+  let totalXp = 0;
+
+  for (const category of categories) {
+    const difficulty = difficulties[category] || 'easy';
+    const xp = xpTable[category]?.[difficulty] ?? 10;
+    totalXp += xp;
+  }
+  return Math.min(totalXp, XP_CAP)
 }
 
 // 🆕 1. Hero applies to a quest
@@ -79,17 +89,17 @@ export async function getPendingOffersForQuest(questId) {
 export async function createQuest({
   title,
   description,
-  category,
-  difficulty,
+  categories,
+  difficulties,
   requesterId,
 }) {
-  const xp = calculateXp(category, difficulty);
+  const xp = calculateXp(categories, difficulties);
 
   const { error } = await supabase.from('quests').insert({
     title,
     description,
-    category,
-    difficulty,
+    category: categories,
+    difficulty: JSON.stringify(difficulties),
     xp,
     requester_id: requesterId,
     status: 'open',
@@ -118,6 +128,7 @@ export async function getOpenQuests() {
 }
 
 // ✅ Complete quest + award XP
+// ✅ Mark quest complete + award XP using levelSystem
 export async function completeQuest({ questId, heroId }) {
   const { data: questData, error: questError } = await supabase
     .from('quests')
@@ -132,6 +143,7 @@ export async function completeQuest({ questId, heroId }) {
 
   const questXp = questData.xp;
 
+  // Get user's current XP + level
   const { data: userData, error: userError } = await supabase
     .from('users')
     .select('xp, level')
@@ -142,20 +154,16 @@ export async function completeQuest({ questId, heroId }) {
     console.error('Error fetching user:', userError.message);
     return;
   }
-  
-  const totalXp = userData.xp + questXp;
-  let newLevel = userData.level;
-  const levelThreshold = newLevel * 100;
 
-  if (totalXp >= levelThreshold) {
-    newLevel += 1;
-  }
+  // Apply XP and handle level-up using your levelSystem logic
+  const updatedProgress = addXP({ xp: userData.xp, level: userData.level }, questXp);
 
+  // Save updated progress
   const { error: updateUserError } = await supabase
     .from('users')
     .update({
-      xp: totalXp,
-      level: newLevel,
+      xp: updatedProgress.xp,
+      level: updatedProgress.level,
     })
     .eq('id', heroId);
 
@@ -164,26 +172,22 @@ export async function completeQuest({ questId, heroId }) {
     return;
   }
 
+  // Mark quest complete
   const { error: updateQuestError } = await supabase
     .from('quests')
-    .update({
-      status: 'completed',
-    })
+    .update({ status: 'completed' })
     .eq('id', questId);
 
   if (updateQuestError) {
     console.error('Error marking quest complete:', updateQuestError.message);
   } else {
-    console.log(`Quest completed. ${questXp} XP awarded.`);
+    console.log(`✅ Quest complete. ${questXp} XP awarded.`);
+    console.log(`Hero is now level ${updatedProgress.level} with ${updatedProgress.xp} XP.`);
   }
 }
 
+
 export async function fetchLatestQuest(requesterId) {
-  const { createClient } = await import('@supabase/supabase-js');
-  const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_ANON_KEY
-  );
 
   const { data, error } = await supabase
     .from('quests')

@@ -1,4 +1,4 @@
-import { signUpWithProfile } from './auth.js';
+import { signUpWithProfile } from '../User/auth.js';
 
 const email = 'Fletcher.lorenzoo@gmail.com';
 const password = 'mypassword123';

@@ -1,10 +1,10 @@
-function xpNeededForLevel(level) {
+export async function xpNeededForLevel(level) {
   const baseXP = 10
   const exponent = 1.5
   return Math.floor(baseXP * Math.pow(level, exponent))
 }
 
-function addXP(userProgress, amount) {
+export async function addXP(userProgress, amount) {
   userProgress.xp += amount
 
   // Level up as long as XP exceeds current level requirement
@@ -15,5 +15,3 @@ function addXP(userProgress, amount) {
 
   return userProgress
 }
-
-module.exports = { addXP, xpNeededForLevel }

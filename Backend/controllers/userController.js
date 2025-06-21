@@ -1,13 +1,6 @@
-// auth.js
-import { createClient } from '@supabase/supabase-js';
 import dotenv from 'dotenv';
+import { supabase } from '../Supabase/supabaseClient';
 dotenv.config();
-
-// Init Supabase client
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
 
 // SIGN UP + INSERT INTO USERS TABLE
 export async function signUpWithProfile(email, password, username, avatarUrl) {
@@ -41,4 +34,37 @@ export async function signUpWithProfile(email, password, username, avatarUrl) {
   }
 
   console.log('Signup + user profile created successfully!');
+}
+
+// LOG IN USER
+export async function loginUser(email, password) {
+  const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (authError) {
+    console.error('Login Error:', authError.message);
+    return null;
+  }
+
+  const user = authData.user;
+
+  // Fetch profile from custom users table
+  const { data: profile, error: profileError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError) {
+    console.error('Profile Fetch Error:', profileError.message);
+    return null;
+  }
+
+  console.log('Login successful:', profile.username);
+  return {
+    session: authData.session,
+    user: profile,
+  };
 }
