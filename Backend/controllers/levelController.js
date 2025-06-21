@@ -1,4 +1,9 @@
-const completeTask = async (userId, category, xpGained) => {
+// levelController.js (ES Module)
+
+import { supabase } from '../supabaseClient.js'
+import { addXP } from '../utils/levelSystem.js'
+
+export async function updateUserProgress(userId, category, xpGained) {
   const { data: user, error: fetchError } = await supabase
     .from('users')
     .select('*')
@@ -13,10 +18,8 @@ const completeTask = async (userId, category, xpGained) => {
   const updatedStats = { ...user.category_stats }
   updatedStats[category] = (updatedStats[category] || 0) + 1
 
-//add xp
   const { level, xp } = addXP({ level: user.level, xp: user.xp }, xpGained)
 
-// badges for milestones
   const badges = [...user.badges]
   const milestones = [10, 25, 50, 100]
 
@@ -37,6 +40,10 @@ const completeTask = async (userId, category, xpGained) => {
     })
     .eq('id', userId)
 
-  if (updateError) console.error('Error updating user:', updateError)
-  else console.log('User progress updated')
+  if (updateError) {
+    console.error('Error updating user:', updateError)
+  } else {
+    console.log('User progress updated')
+  }
 }
+
