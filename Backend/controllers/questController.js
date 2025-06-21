@@ -1,6 +1,11 @@
 // questController.js
+<<<<<<< HEAD
 import { supabase } from '../supabaseClient.js';
 import { addXP } from '../util/levelsystem.js';
+=======
+import { supabase } from '../Supabase/supabaseClient.js'
+import { addXP } from '../progression/levelsystem.js';
+>>>>>>> e20115b188181527db13587949d1a3baf10bd571
 
 const xpTable = {
   strength: { light: 10, medium: 25, heavy: 50 },
@@ -188,11 +193,6 @@ export async function completeQuest({ questId, heroId }) {
 
 
 export async function fetchLatestQuest(requesterId) {
-  const { createClient } = await import('@supabase/supabase-js');
-  const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_ANON_KEY
-  );
 
   const { data, error } = await supabase
     .from('quests')
