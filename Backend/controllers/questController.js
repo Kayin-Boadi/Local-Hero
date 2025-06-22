@@ -226,3 +226,24 @@ export async function getNearbyQuests({ lat, lng, radiusKm = 10 }) {
 
   return data;
 }
+
+export const getNearbyQuests = async (req, res) => {
+  const { lat, lng, radiusKm = 10 } = req.body;
+
+  if (!lat || !lng) {
+    return res.status(400).json({ error: 'Latitude and longitude are required' });
+  }
+
+  const { data, error } = await supabase.rpc('get_nearby_quests', {
+    user_lat: lat,
+    user_lng: lng,
+    radius_km: radiusKm,
+  });
+
+  if (error) {
+    console.error('Error fetching nearby quests:', error.message);
+    return res.status(500).json({ error: error.message });
+  }
+
+  res.status(200).json(data);
+};
