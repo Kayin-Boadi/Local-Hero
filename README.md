@@ -24,7 +24,7 @@
 | Frontend               | Backend             | Tools & Services        |
 |------------------------|---------------------|--------------------------|
 | React Native (Expo)    | Node.js + Express   | Supabase (PostgreSQL)   |
-| React Navigation       | RESTful API         | Expo Location API       |
+| Expo Router            | RESTful API         | Expo Location API       |
 | Context API            | Supabase Auth       | AsyncStorage (JWTs)     |
 
 ## 🧠 Key Challenges We Solved
