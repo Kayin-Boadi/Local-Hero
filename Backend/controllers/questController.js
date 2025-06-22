@@ -249,3 +249,26 @@ export const getNearbyQuests = async (req, res) => {
 
   res.status(200).json(data);
 };
+
+export const withdrawFromQuest = async (req, res) => {
+  const { heroId, questId } = req.body;
+
+  if (!heroId || !questId) {
+    return res.status(400).json({ success: false, error: 'Missing heroId or questId.' });
+  }
+
+  // Only delete if the offer is still pending
+  const { error } = await supabase
+    .from('quest_offers')
+    .delete()
+    .eq('hero_id', heroId)
+    .eq('quest_id', questId)
+    .eq('status', 'pending');
+
+  if (error) {
+    console.error('Withdraw Error:', error.message);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+
+  return res.status(200).json({ success: true, message: 'Offer withdrawn successfully.' });
+};
