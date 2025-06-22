@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../../utils/authContext';
 import ProgressBar from 'react-native-progress/Bar'; // make sure to install this or substitute your progress bar
+import LoginScreen from './loginScreen'; // your login form component
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
@@ -42,11 +43,7 @@ export default function ProfileScreen() {
   };
 
   if (!user) {
-    return (
-      <SafeAreaView style={styles.centered}>
-        <Text>Please login to view your profile.</Text>
-      </SafeAreaView>
-    );
+     return <LoginScreen />;
   }
 
   const data = [
