@@ -1,9 +1,8 @@
 // questController.js
-import { addXP } from '../util/levelsystem.js';
-=======
+import { addXP } from '../util/levelsystem.js'
 import { supabase } from '../Supabase/supabaseClient.js'
 import { addXP } from '../progression/levelsystem.js';
->>>>>>> e20115b188181527db13587949d1a3baf10bd571
+e20115b188181527db13587949d1a3baf10bd571
 
 const xpTable = {
   strength: { light: 10, medium: 25, heavy: 50 },
