@@ -1,6 +1,8 @@
 // questController.js
 import { supabase } from '../Supabase/supabaseClient.js'
 
+import { updateUserProgress } from '../controllers/levelController.js' 
+
 const xpTable = {
   strength: { light: 10, medium: 25, heavy: 50 },
   intelligence: { easy: 10, moderate: 25, hard: 50 },
@@ -138,7 +140,6 @@ export const getOpenQuests = async (_req, res) => {
 };
 
 
-
 // Get pending hero offers for a quest
 export const getPendingOffersForQuest = async (req, res) => {
   const { questId } = req.params;
@@ -157,49 +158,6 @@ export const getPendingOffersForQuest = async (req, res) => {
   return data;
 }
 
-// 🎯 Create a new quest
-export async function createQuest({
-  title,
-  description,
-  categories,
-  difficulties,
-  requesterId,
-}) {
-  const xp = calculateXp(categories, difficulties);
-
-  const { error } = await supabase.from('quests').insert({
-    title,
-    description,
-    category: categories,
-    difficulty: JSON.stringify(difficulties),
-    xp,
-    requester_id: requesterId,
-    status: 'open',
-  });
-
-  if (error) {
-    console.error('Error creating quest:', error.message);
-  } else {
-    console.log('Quest successfully created.');
-  }
-}
-
-// 📜 Get all open quests
-export async function getOpenQuests() {
-  const { data, error } = await supabase
-    .from('quests')
-    .select('*')
-    .eq('status', 'open');
-
-  if (error) {
-    console.error('Error fetching quests:', error.message);
-    return [];
-  }
-
-  return data;
-}
-
-import { updateUserProgress } from 'Backend\controllers\levelController.js' ; 
 
 export async function completeQuest({ questId, heroId }) {
   // 1. Fetch the quest to get XP, category, difficulty, etc.
