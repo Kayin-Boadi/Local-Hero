@@ -1,6 +1,7 @@
 // questController.js
 import { addXP } from '../util/levelsystem.js';
 import { supabase } from '../Supabase/supabaseClient.js'
+import { checkAndAwardBadges } from './levelController.js';
 
 const xpTable = {
   strength: { light: 10, medium: 25, heavy: 50 },
@@ -21,7 +22,7 @@ function calculateXp(categories = [], difficulties = {}) {
   return Math.min(totalXp, XP_CAP);
 }
 
-// 🎯 Create a quest
+// Create a quest
 export const createQuest = async (req, res) => {
   const { title, description, categories, difficulties, requesterId, latitude, longitude } = req.body;
 
@@ -55,7 +56,7 @@ export const createQuest = async (req, res) => {
   return res.status(201).json({ success: true, message: 'Quest created successfully.' });
 };
 
-// 🧝 Hero applies to help
+// Hero applies to help
 export const offerToHelp = async (req, res) => {
   const { heroId, questId } = req.body;
   if (!heroId || !questId) {
@@ -75,7 +76,7 @@ export const offerToHelp = async (req, res) => {
   return res.status(200).json({ success: true, message: 'Offer submitted.' });
 };
 
-// 👑 Approve a hero
+// Approve a hero
 export const approveHeroOffer = async (req, res) => {
   const { questId, heroId } = req.body;
   if (!questId || !heroId) {
@@ -109,7 +110,7 @@ export const approveHeroOffer = async (req, res) => {
   return res.status(200).json({ success: true, message: 'Hero approved and quest assigned.' });
 };
 
-// 📜 Get all open quests with lat/lng extracted from location
+// Get all open quests with lat/lng extracted from location
 export const getOpenQuests = async (_req, res) => {
   const { data, error } = await supabase.rpc('get_open_quests_with_coords');
 
@@ -122,7 +123,7 @@ export const getOpenQuests = async (_req, res) => {
 
 
 
-// 🔍 Get pending hero offers for a quest
+// Get pending hero offers for a quest
 export const getPendingOffersForQuest = async (req, res) => {
   const { questId } = req.params;
 
@@ -139,7 +140,7 @@ export const getPendingOffersForQuest = async (req, res) => {
   return res.status(200).json({ success: true, data });
 };
 
-// ✅ Complete quest + award XP
+// Complete quest + award XP
 export const completeQuest = async (req, res) => {
   const { questId, heroId } = req.body;
   if (!questId || !heroId) {
@@ -189,15 +190,28 @@ export const completeQuest = async (req, res) => {
     return res.status(500).json({ success: false, error: updateQuestError.message });
   }
 
+  // 🟨 Award badges for each quest category
+  let awardedBadges = [];
+  for (const category of questData.category || []) {
+    const badgeResult = await checkAndAwardBadges({
+      body: { userId: heroId, category }
+    }, {
+      status: () => ({
+        json: (result) => awardedBadges.push({ category, ...result })
+      })
+    });
+  }
+
   return res.status(200).json({
     success: true,
     message: `Quest completed. ${questData.xp} XP awarded.`,
     newLevel: updatedProgress.level,
     remainingXP: updatedProgress.xp,
+    badges: awardedBadges,
   });
 };
 
-// 🧪 Fetch latest quest by requester (for testing/dev only)
+// Fetch latest quest by requester (for testing/dev only)
 export const fetchLatestQuest = async (req, res) => {
   const { requesterId } = req.params;
 

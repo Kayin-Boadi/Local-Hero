@@ -1,6 +1,6 @@
 // Backend/controllers/levelController.js
-import { supabase } from 'Backend/supabaseClient.js'
-import { addXP } from 'Backend/util/levelsystem.js'
+import { supabase } from '../Supabase/supabaseClient.js'
+import { addXP } from '../util/levelsystem.js'
 
 export async function updateUserProgress(req, res) {
   try {
@@ -126,7 +126,7 @@ export async function checkAndAwardBadges(req, res) {
       .select('id')
       .eq('assigned_hero_id', userId)
       .eq('status', 'completed')
-      .contains('category', [category]);
+      .contains('category', category);
 
     if (questError) {
       console.error('Quest fetch error:', questError.message);
