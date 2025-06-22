@@ -1,9 +1,5 @@
 // questController.js
-import { addXP } from '../util/levelsystem.js';
-=======
 import { supabase } from '../Supabase/supabaseClient.js'
-import { addXP } from '../progression/levelsystem.js';
->>>>>>> e20115b188181527db13587949d1a3baf10bd571
 
 const xpTable = {
   strength: { light: 10, medium: 25, heavy: 50 },
@@ -328,3 +324,51 @@ export const getPostedQuestsByUser = async (req, res) => {
 
   return res.status(200).json({ success: true, data });
 };
+// Get Quest for Hero
+export const getPendingQuestForHero = async (req, res) => {
+  const { heroId } = req.params;
+  if (!heroId) return res.status(400).json({ success: false, error: 'Missing heroId' });
+
+  const { data, error } = await supabase
+    .from('quest_offers')
+    .select(`
+      status,
+      quests (
+        id,
+        title,
+        description,
+        category,
+        difficulty,
+        location,
+        requester_id
+      )
+    `)
+    .eq('hero_id', heroId)
+    .in('status', ['pending', 'accepted'])
+    .limit(1);
+
+  if (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+
+  if (!data.length) {
+    return res.status(200).json({ success: true, data: null });
+  }
+
+  const offer = data[0];
+  const quest = offer.quests;
+
+  // Safely extract latitude/longitude from location
+  const [longitude, latitude] = quest?.location?.coordinates || [];
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      ...quest,
+      status: offer.status,
+      latitude,
+      longitude,
+    },
+  });
+};
+
