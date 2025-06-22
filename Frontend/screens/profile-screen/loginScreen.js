@@ -24,7 +24,7 @@ export default function LoginScreen() {
     try {
       setError(null);
       await login(email, password);
-      router.replace('/profile'); 
+      router.replace('/'); 
     } catch {
       setError('Login failed');
     }
@@ -34,7 +34,7 @@ export default function LoginScreen() {
     try {
       setError(null);
       await signUp(email, password, username, 'https://i.imgur.com/N6fJJKB.png'); // avatarUrl empty for MVP
-      router.replace('/profile'); 
+      router.replace('/'); 
     } catch {
       setError('Signup failed');
     }

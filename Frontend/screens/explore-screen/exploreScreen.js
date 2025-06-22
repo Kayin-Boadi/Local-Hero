@@ -11,7 +11,11 @@ import {
   Pressable,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
+import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
+import { useAuth } from '../../utils/authContext';
 import api from '../../utils/api';
+import { router } from 'expo-router';
 
 const { height } = Dimensions.get('window');
 
@@ -28,41 +32,51 @@ export default function ExploreScreen() {
   const mapRef = useRef(null);
 
   useEffect(() => {
+    const initializeMap = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.warn('Permission to access location was denied');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      setRegion({
+        latitude,
+        longitude,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      });
+    };
+
+    initializeMap();
+  }, []);
+
+
+  useEffect(() => {
     const fetchQuests = async () => {
       try {
-        // const res = await api.get('/api/tasks');
-        // const data = res.data;
-        const data = [
-          {
-            _id: '1',
-            title: 'Clean the community park',
-            category: 'Environment',
-            latitude: 43.6542,
-            longitude: -79.3802,
-          },
-          {
-            _id: '2',
-            title: 'Distribute flyers for fundraiser',
-            category: 'Event',
-            latitude: 43.6522,
-            longitude: -79.3872,
-          },
-          {
-            _id: '3',
-            title: 'Grocery run for elderly',
-            category: 'Errand',
-            latitude: 43.6515,
-            longitude: -79.382,
-          },
-        ];
-        setQuests(data);
+        const res = await api.get('/api/quests/open');
+        const questData = res.data.data || [];
+
+        const parsed = questData.map((q) => ({
+          _id: q.id,
+          title: q.title,
+          category: q.category?.join(', ') || 'Misc',
+          latitude: q.location?.coordinates?.[1], // GeoJSON is [lng, lat]
+          longitude: q.location?.coordinates?.[0],
+        })).filter(q => q.latitude && q.longitude);
+
+        setQuests(parsed);
       } catch (err) {
-        console.error(err);
+        console.error('Failed to load quests', err);
       }
     };
 
     fetchQuests();
   }, []);
+
 
   const panToQuest = (quest) => {
     if (mapRef.current) {
@@ -82,6 +96,26 @@ export default function ExploreScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
+        <TouchableOpacity
+            onPress={() => router.push('/routes/exploreRoute/createQuest')}
+            style={{
+              position: 'absolute',
+              top: 20,
+              right: 20,
+              zIndex: 10,
+              backgroundColor: '#fff',
+              borderRadius: 24,
+              padding: 10,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.2,
+              shadowRadius: 4,
+              elevation: 5,
+            }}
+            >
+            <Ionicons name="add" size={28} color="#111" />
+        </TouchableOpacity>
+
         <MapView ref={mapRef} style={styles.map} region={region}>
           {quests.map((quest) => (
             <Marker

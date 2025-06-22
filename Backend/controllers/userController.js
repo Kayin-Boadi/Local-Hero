@@ -18,6 +18,11 @@ export const signUpWithProfile = async (req, res) => {
     }
 
     const user = signUpData.user;
+    const session = signUpData.session;
+
+    if (!session) {
+      return res.status(401).json({ success: false, error: 'Email confirmation required' });
+    }
 
     const { error: insertError } = await supabase.from('users').insert({
       id: user.id,
@@ -34,7 +39,21 @@ export const signUpWithProfile = async (req, res) => {
       return res.status(400).json({ success: false, error: insertError.message });
     }
 
-    return res.status(201).json({ success: true, data: { userId: user.id } });
+    return res.status(201).json({
+      success: true,
+      data: {
+        user: {
+          id: user.id,
+          email: user.email,
+          username,
+          avatarUrl,
+          level: 1,
+          xp: 0,
+          gold: 0,
+        },
+        accessToken: session.access_token,
+      },
+    });
   } catch (err) {
     console.error('Signup Exception:', err.message);
     return res.status(500).json({ success: false, error: 'Unexpected error during signup.' });
@@ -85,6 +104,30 @@ export const loginUser = async (req, res) => {
     return res.status(500).json({ success: false, error: 'Unexpected error during login.' });
   }
 };
+
+//Me
+export const getCurrentUser = async (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) return res.status(401).json({ error: 'No token provided' });
+
+  const token = authHeader.split(' ')[1];
+  const { data: { user }, error } = await supabase.auth.getUser(token);
+
+  if (error || !user) {
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+
+  const { data: profile, error: profileError } = await supabase
+    .from('users')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
+  if (profileError) return res.status(404).json({ error: 'Profile not found' });
+
+  res.status(200).json(profile);
+};
+
 
 // GET /users/:id
 export const getUserProfile = async (req, res) => {

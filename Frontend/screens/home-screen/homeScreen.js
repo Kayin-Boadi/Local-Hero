@@ -11,16 +11,12 @@ import {
   Dimensions,
 } from 'react-native';
 import ProgressBar from 'react-native-progress/Bar';
+import { useAuth } from '../../utils/authContext';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
-  const [user, setUser] = useState({
-    username: 'SuperFletch',
-    level: 2,
-    xp: 45,
-    profilePic: 'https://i.imgur.com/N6fJJKB.png',
-  });
+  const { user } = useAuth();
 
   const [completedTasks, setCompletedTasks] = useState([]);
   const [urgentTasks, setUrgentTasks] = useState([]);
@@ -45,11 +41,20 @@ export default function HomeScreen() {
     ...urgentTasks.map((task) => ({ ...task, type: 'urgent' })),
   ];
 
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={{ textAlign: 'center', marginTop: 50 }}>Loading...</Text>
+      </SafeAreaView>
+    );
+  }
+
+
   const renderItem = ({ item }) => {
     if (item.type === 'profile') {
       return (
         <View style={styles.profileContainer}>
-          <Image source={{ uri: user.profilePic }} style={styles.avatar} />
+          <Image source={{ uri: user?.avatar_url || 'https://i.imgur.com/N6fJJKB.png' }} style={styles.avatar} />
           <View style={styles.profileInfo}>
             <Text style={styles.username}>{user.username}</Text>
             <View style={styles.levelBadge}>
