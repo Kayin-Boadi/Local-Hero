@@ -53,22 +53,45 @@ export default function ExploreScreen() {
     initializeMap();
   }, []);
 
+  const reverseGeocode = async (lat, lng) => {
+    try {
+      const results = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+      return results?.[0]?.city || 'Unknown City';
+    } catch {
+      return 'Unknown City';
+    }
+  };
+
 
   useEffect(() => {
     const fetchQuests = async () => {
       try {
-        console.log("PP");
         const res = await api.get('/api/quests/open');
         const questData = res.data.data || [];
-        console.log(questData);
-        const parsed = questData.map((q) => ({
-          _id: q.id,
-          title: q.title,
-          category: q.category?.join(', ') || 'Misc',
-          latitude: q.location?.coordinates?.[1], // GeoJSON is [lng, lat]
-          longitude: q.location?.coordinates?.[0],
-        })).filter(q => q.latitude && q.longitude);
-
+        const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+        const parsed = questData.map((q) => {
+          return {
+            _id: q.id,
+            title: q.title,
+            username: q.username || 'Unknown',
+            description: q.description,
+            category: q.category?.map(capitalize).join(', ') || 'Misc',
+            difficulty: (() => {
+              try {
+                const parsed = typeof q.difficulty === 'string' ? JSON.parse(q.difficulty) : q.difficulty;
+                // parsed is an object like { intelligence: "hard" }
+                const values = Object.values(parsed || {});
+                // Take all values, capitalize them, join by comma (in case multiple)
+                return values.map(v => v.charAt(0).toUpperCase() + v.slice(1)).join(', ');
+              } catch (e) {
+                return 'Unknown';
+              }
+            })(),
+            latitude: q.latitude,
+            longitude: q.longitude,
+          };
+        });
+        
         setQuests(parsed);
       } catch (err) {
         console.error('Failed to load quests', err);
@@ -79,20 +102,20 @@ export default function ExploreScreen() {
   }, []);
 
 
-  const panToQuest = (quest) => {
+  const panToQuest = async (quest) => {
     if (mapRef.current) {
-      mapRef.current.animateToRegion(
-        {
-          latitude: quest.latitude,
-          longitude: quest.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        },
-        500
-      );
+      mapRef.current.animateToRegion({
+        latitude: quest.latitude,
+        longitude: quest.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }, 500);
     }
-    setSelectedQuest(quest);
+
+    const city = await reverseGeocode(quest.latitude, quest.longitude);
+    setSelectedQuest({ ...quest, city });
   };
+
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -156,10 +179,11 @@ export default function ExploreScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>{selectedQuest?.title}</Text>
-            <Text style={styles.modalCategory}>{selectedQuest?.category}</Text>
-            <Text style={styles.modalText}>
-              Approx. Location: {selectedQuest?.latitude.toFixed(4)}, {selectedQuest?.longitude.toFixed(4)}
-            </Text>
+            <Text style={styles.modalSub}>Posted by: {selectedQuest?.username}</Text>
+            <Text style={styles.modalCategory}>Category: {selectedQuest?.category}</Text>
+            <Text style={styles.modalCategory}>Difficulty: {selectedQuest?.difficulty}</Text>
+            <Text style={styles.modalText}>Approx. Location: {selectedQuest?.city}</Text>
+            <Text style={styles.modalText}>{selectedQuest?.description}</Text>
             <View style={styles.modalButtons}>
               <Pressable
                 style={[styles.modalButton, { backgroundColor: '#4CAF50' }]}
