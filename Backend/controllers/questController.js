@@ -23,14 +23,15 @@ function calculateXp(categories = [], difficulties = {}) {
 
 // 🎯 Create a quest
 export const createQuest = async (req, res) => {
-  const { title, description, categories, difficulties, requesterId } = req.body;
-  if (!title || !categories || !requesterId || !longitude || !latitude) {
+  const { title, description, categories, difficulties, requesterId, latitude, longitude } = req.body;
+
+  if (!title || !categories || !requesterId || !latitude || !longitude) {
     return res.status(400).json({ success: false, error: 'Missing required fields.' });
   }
 
   const xp = calculateXp(categories, difficulties);
 
-  const point = `POINT(${longitude} ${latitude})`;
+  const point = `POINT(${longitude} ${latitude})`; // GeoJSON format
 
   const { error } = await supabase.from('quests').insert({
     title,
@@ -39,8 +40,11 @@ export const createQuest = async (req, res) => {
     difficulty: JSON.stringify(difficulties),
     xp,
     requester_id: requesterId,
-    availability: false,
     location: point,
+    availability: false,
+    photo_required: false,
+    repeatable: false,
+    status: 'open',
   });
 
   if (error) {
@@ -105,12 +109,9 @@ export const approveHeroOffer = async (req, res) => {
   return res.status(200).json({ success: true, message: 'Hero approved and quest assigned.' });
 };
 
-// 📜 Get all open quests
+// 📜 Get all open quests with lat/lng extracted from location
 export const getOpenQuests = async (_req, res) => {
-  const { data, error } = await supabase
-    .from('quests')
-    .select('*')
-    .eq('status', 'open');
+  const { data, error } = await supabase.rpc('get_open_quests_with_coords');
 
   if (error) {
     return res.status(500).json({ success: false, error: error.message });
@@ -118,6 +119,8 @@ export const getOpenQuests = async (_req, res) => {
 
   return res.status(200).json({ success: true, data });
 };
+
+
 
 // 🔍 Get pending hero offers for a quest
 export const getPendingOffersForQuest = async (req, res) => {

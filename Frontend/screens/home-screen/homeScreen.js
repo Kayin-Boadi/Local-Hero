@@ -11,16 +11,12 @@ import {
   Dimensions,
 } from 'react-native';
 import ProgressBar from 'react-native-progress/Bar';
+import { useAuth } from '../../utils/authContext';
 
 const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
-  const [user, setUser] = useState({
-    username: 'SuperFletch',
-    level: 2,
-    xp: 45,
-    profilePic: 'https://i.imgur.com/N6fJJKB.png',
-  });
+  const { user } = useAuth();
 
   const [completedTasks, setCompletedTasks] = useState([]);
   const [urgentTasks, setUrgentTasks] = useState([]);
@@ -45,14 +41,26 @@ export default function HomeScreen() {
     ...urgentTasks.map((task) => ({ ...task, type: 'urgent' })),
   ];
 
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={{ textAlign: 'center', marginTop: 50 }}>Loading...</Text>
+      </SafeAreaView>
+    );
+  }
+
+
   const renderItem = ({ item }) => {
     if (item.type === 'profile') {
       return (
         <View style={styles.profileContainer}>
-          <Image source={{ uri: user.profilePic }} style={styles.avatar} />
+          <Image source={{ uri: user?.avatar_url || 'https://i.imgur.com/N6fJJKB.png' }} style={styles.avatar} />
           <View style={styles.profileInfo}>
             <Text style={styles.username}>{user.username}</Text>
-            <Text style={styles.level}>Level {user.level}</Text>
+            <View style={styles.levelBadge}>
+                <Text style={styles.levelBadgeText}>Level {user.level}</Text>
+            </View>
+
             <ProgressBar
               progress={user.xp / 100}
               width={null}
@@ -183,7 +191,25 @@ const styles = StyleSheet.create({
     color: '#555',
     marginBottom: 8,
   },
-  progressBar: {
+  levelBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFD700', // Gold-style background
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+    },
+    levelBadgeText: {
+    color: '#222',
+    fontWeight: '700',
+    fontSize: 14,
+    },
+    progressBar: {
     marginTop: 4,
     borderRadius: 10,
     overflow: 'hidden',
