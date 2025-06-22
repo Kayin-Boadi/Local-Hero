@@ -212,21 +212,6 @@ export const fetchLatestQuest = async (req, res) => {
   return res.status(200).json({ success: true, data: data[0] });
 };
 
-export async function getNearbyQuests({ lat, lng, radiusKm = 10 }) {
-  const { data, error } = await supabase.rpc('get_nearby_quests', {
-    user_lat: lat,
-    user_lng: lng,
-    radius_km: radiusKm,
-  });
-
-  if (error) {
-    console.error('Error fetching nearby quests:', error.message);
-    return [];
-  }
-
-  return data;
-}
-
 export const getNearbyQuests = async (req, res) => {
   const { lat, lng, radiusKm = 10 } = req.body;
 
