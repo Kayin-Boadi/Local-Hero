@@ -63,6 +63,6 @@ npx expo start
 
 ## 👥 Team
 
-- **[Your Name]** — 
+- **[Osamudiamen Adun]** — Frontend 
 - **[Kayin Boadi]** — Backend/API & Database  
 - **[Fletcher Lorenzo]** —  Backend
