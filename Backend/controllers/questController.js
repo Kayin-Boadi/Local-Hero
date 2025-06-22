@@ -1,8 +1,7 @@
 // questController.js
-import { addXP } from '../util/levelsystem.js'
 import { supabase } from '../Supabase/supabaseClient.js'
-import { addXP } from '../progression/levelsystem.js';
-e20115b188181527db13587949d1a3baf10bd571
+
+import { updateUserProgress } from '../controllers/levelController.js' 
 
 const xpTable = {
   strength: { light: 10, medium: 25, heavy: 50 },
@@ -141,7 +140,6 @@ export const getOpenQuests = async (_req, res) => {
 };
 
 
-
 // Get pending hero offers for a quest
 export const getPendingOffersForQuest = async (req, res) => {
   const { questId } = req.params;
@@ -160,49 +158,6 @@ export const getPendingOffersForQuest = async (req, res) => {
   return data;
 }
 
-// 🎯 Create a new quest
-export async function createQuest({
-  title,
-  description,
-  categories,
-  difficulties,
-  requesterId,
-}) {
-  const xp = calculateXp(categories, difficulties);
-
-  const { error } = await supabase.from('quests').insert({
-    title,
-    description,
-    category: categories,
-    difficulty: JSON.stringify(difficulties),
-    xp,
-    requester_id: requesterId,
-    status: 'open',
-  });
-
-  if (error) {
-    console.error('Error creating quest:', error.message);
-  } else {
-    console.log('Quest successfully created.');
-  }
-}
-
-// 📜 Get all open quests
-export async function getOpenQuests() {
-  const { data, error } = await supabase
-    .from('quests')
-    .select('*')
-    .eq('status', 'open');
-
-  if (error) {
-    console.error('Error fetching quests:', error.message);
-    return [];
-  }
-
-  return data;
-}
-
-import { updateUserProgress } from 'Backend\controllers\levelController.js' ; 
 
 export async function completeQuest({ questId, heroId }) {
   // 1. Fetch the quest to get XP, category, difficulty, etc.
@@ -327,3 +282,51 @@ export const getPostedQuestsByUser = async (req, res) => {
 
   return res.status(200).json({ success: true, data });
 };
+// Get Quest for Hero
+export const getPendingQuestForHero = async (req, res) => {
+  const { heroId } = req.params;
+  if (!heroId) return res.status(400).json({ success: false, error: 'Missing heroId' });
+
+  const { data, error } = await supabase
+    .from('quest_offers')
+    .select(`
+      status,
+      quests (
+        id,
+        title,
+        description,
+        category,
+        difficulty,
+        location,
+        requester_id
+      )
+    `)
+    .eq('hero_id', heroId)
+    .in('status', ['pending', 'accepted'])
+    .limit(1);
+
+  if (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+
+  if (!data.length) {
+    return res.status(200).json({ success: true, data: null });
+  }
+
+  const offer = data[0];
+  const quest = offer.quests;
+
+  // Safely extract latitude/longitude from location
+  const [longitude, latitude] = quest?.location?.coordinates || [];
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      ...quest,
+      status: offer.status,
+      latitude,
+      longitude,
+    },
+  });
+};
+

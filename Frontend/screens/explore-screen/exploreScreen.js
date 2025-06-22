@@ -16,19 +16,21 @@ import * as Location from 'expo-location';
 import { useAuth } from '../../utils/authContext';
 import api from '../../utils/api';
 import { router } from 'expo-router';
+import PendingQuestScreen from './pendingQuestScreen';
 
 const { height } = Dimensions.get('window');
 
 export default function ExploreScreen() {
   const [quests, setQuests] = useState([]);
   const [selectedQuest, setSelectedQuest] = useState(null);
+  const [pendingQuest, setPendingQuest] = useState(null);
   const [region, setRegion] = useState({
     latitude: 43.6532,
     longitude: -79.3832,
     latitudeDelta: 0.05,
     longitudeDelta: 0.05,
   });
-
+  const { user } = useAuth();
   const mapRef = useRef(null);
 
   useEffect(() => {
@@ -91,7 +93,7 @@ export default function ExploreScreen() {
             longitude: q.longitude,
           };
         });
-        
+
         setQuests(parsed);
       } catch (err) {
         console.error('Failed to load quests', err);
@@ -101,6 +103,19 @@ export default function ExploreScreen() {
     fetchQuests();
   }, []);
 
+  useEffect(() => {
+    const checkPendingQuest = async () => {
+      if (!user?.id) return;
+      try {
+        const res = await api.get(`/api/quests/pending/hero/${user.id}`);
+        setPendingQuest(res.data.data);
+      } catch (err) {
+        console.error(err, err.response?.data || err.message || err);
+      }
+    };
+
+    checkPendingQuest();
+  }, [user]);
 
   const panToQuest = async (quest) => {
     if (mapRef.current) {
@@ -116,6 +131,39 @@ export default function ExploreScreen() {
     setSelectedQuest({ ...quest, city });
   };
 
+  const offerHelp = async (questId) => {
+    try {
+      if (!user?.id) {
+        return;
+      }
+
+      const res = await api.post('api/quests/offer', {
+        heroId: user.id,
+        questId,
+      });
+
+      if (res.data.success) {
+        setSelectedQuest(null);
+      } else {
+
+      }
+    } catch (err) {
+      console.error('Offer error', err);
+      console.error('Offer error', err.response?.data || err.message || err);
+
+    }
+  };
+
+
+  useEffect(() => {
+    if (!user) {
+      router.replace('/profile');
+    } 
+  }, [user]);
+
+  if (pendingQuest) {
+    return <PendingQuestScreen quest={pendingQuest} onComplete={() => setPendingQuest(null)} />;
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -187,10 +235,7 @@ export default function ExploreScreen() {
             <View style={styles.modalButtons}>
               <Pressable
                 style={[styles.modalButton, { backgroundColor: '#4CAF50' }]}
-                onPress={() => {
-                  // accept quest logic here
-                  setSelectedQuest(null);
-                }}
+                onPress={() => offerHelp(selectedQuest._id)}
               >
                 <Text style={styles.modalButtonText}>Yes</Text>
               </Pressable>
