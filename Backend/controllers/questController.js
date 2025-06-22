@@ -1,11 +1,6 @@
 // questController.js
-<<<<<<< HEAD
 import { supabase } from '../supabaseClient.js';
 import { addXP } from '../util/levelsystem.js';
-=======
-import { supabase } from '../Supabase/supabaseClient.js'
-import { addXP } from '../progression/levelsystem.js';
->>>>>>> e20115b188181527db13587949d1a3baf10bd571
 
 const xpTable = {
   strength: { light: 10, medium: 25, heavy: 50 },
@@ -132,52 +127,24 @@ export async function getOpenQuests() {
   return data;
 }
 
-// ✅ Complete quest + award XP
-// ✅ Mark quest complete + award XP using levelSystem
+import { updateUserProgress } from 'Backend\controllers\levelController.js';
+
 export async function completeQuest({ questId, heroId }) {
+  // 1. Fetch the quest to get XP, category, difficulty, etc.
   const { data: questData, error: questError } = await supabase
     .from('quests')
-    .select('xp')
+    .select('xp, category')
     .eq('id', questId)
     .single();
 
   if (questError) {
-    console.error('Error fetching quest XP:', questError.message);
+    console.error('Error fetching quest:', questError.message);
     return;
   }
 
-  const questXp = questData.xp;
+  const { xp: questXp, category } = questData;
 
-  // Get user's current XP + level
-  const { data: userData, error: userError } = await supabase
-    .from('users')
-    .select('xp, level')
-    .eq('id', heroId)
-    .single();
-
-  if (userError) {
-    console.error('Error fetching user:', userError.message);
-    return;
-  }
-
-  // Apply XP and handle level-up using your levelSystem logic
-  const updatedProgress = addXP({ xp: userData.xp, level: userData.level }, questXp);
-
-  // Save updated progress
-  const { error: updateUserError } = await supabase
-    .from('users')
-    .update({
-      xp: updatedProgress.xp,
-      level: updatedProgress.level,
-    })
-    .eq('id', heroId);
-
-  if (updateUserError) {
-    console.error('Error updating user XP:', updateUserError.message);
-    return;
-  }
-
-  // Mark quest complete
+  // 2. Mark quest as completed
   const { error: updateQuestError } = await supabase
     .from('quests')
     .update({ status: 'completed' })
@@ -185,11 +152,24 @@ export async function completeQuest({ questId, heroId }) {
 
   if (updateQuestError) {
     console.error('Error marking quest complete:', updateQuestError.message);
-  } else {
-    console.log(`✅ Quest complete. ${questXp} XP awarded.`);
-    console.log(`Hero is now level ${updatedProgress.level} with ${updatedProgress.xp} XP.`);
+    return;
   }
+
+  // 3. Delegate XP and level logic to level controller
+  try {
+    await updateUserProgress({
+      params: { userId: heroId },
+      body: { category, xpGained: questXp },
+    }, {
+      status: () => ({ json: () => {} }) // mock response object (if calling directly)
+    });
+  } catch (err) {
+    console.error('Error updating user progress:', err.message);
+  }
+
+  console.log(`✅ Quest complete. ${questXp} XP awarded to hero ${heroId}.`);
 }
+
 
 
 export async function fetchLatestQuest(requesterId) {

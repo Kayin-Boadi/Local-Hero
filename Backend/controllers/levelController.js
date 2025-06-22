@@ -26,15 +26,24 @@ export async function updateUserProgress(req, res) {
 
     const { level, xp } = addXP({ level: user.level, xp: user.xp }, xpGained)
 
+    // 🆕 Fetch badge rules from Supabase
     const badges = [...user.badges]
-    const milestones = [10, 25, 50, 100]
 
-    milestones.forEach((milestone) => {
-      const badgeName = `${milestone}x ${category}`
-      if (updatedStats[category] === milestone && !badges.includes(badgeName)) {
-        badges.push(badgeName)
+    const { data: badgeRules, error: badgeError } = await supabase
+      .from('badge_rules')
+      .select('milestone, badge_name')
+      .eq('category', category)
+
+      if (badgeError) {
+        console.error('Error fetching badge rules:', badgeError.message)
+      } else {
+        badgeRules.forEach(({ milestone, badge_name }) => {
+          if (updatedStats[category] === milestone && !user.badges.includes(badge_name)) {
+            badges.push(badge_name)
+          }
+        })
       }
-    })
+
 
     const { error: updateError } = await supabase
       .from('users')
