@@ -59,10 +59,27 @@ export const createQuest = async (req, res) => {
 // Hero applies to help
 export const offerToHelp = async (req, res) => {
   const { heroId, questId } = req.body;
+
   if (!heroId || !questId) {
     return res.status(400).json({ success: false, error: 'Missing hero or quest ID.' });
   }
 
+  // 1. Check if the hero is the requester
+  const { data: quest, error: questError } = await supabase
+    .from('quests')
+    .select('requester_id')
+    .eq('id', questId)
+    .single();
+
+  if (questError || !quest) {
+    return res.status(404).json({ success: false, error: 'Quest not found.' });
+  }
+
+  if (quest.requester_id === heroId) {
+    return res.status(403).json({ success: false, error: 'You cannot offer to help your own quest.' });
+  }
+
+  // 2. Insert the offer
   const { error } = await supabase.from('quest_offers').insert({
     hero_id: heroId,
     quest_id: questId,
@@ -75,6 +92,7 @@ export const offerToHelp = async (req, res) => {
 
   return res.status(200).json({ success: true, message: 'Offer submitted.' });
 };
+
 
 // Approve a hero
 export const approveHeroOffer = async (req, res) => {
@@ -271,4 +289,25 @@ export const withdrawFromQuest = async (req, res) => {
   }
 
   return res.status(200).json({ success: true, message: 'Offer withdrawn successfully.' });
+};
+
+export const getPostedQuestsByUser = async (req, res) => {
+  const { userId } = req.params;
+
+  if (!userId) {
+    return res.status(400).json({ success: false, error: 'Missing userId.' });
+  }
+
+  const { data, error } = await supabase
+    .from('quests')
+    .select('*')
+    .eq('requester_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching posted quests:', error.message);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+
+  return res.status(200).json({ success: true, data });
 };

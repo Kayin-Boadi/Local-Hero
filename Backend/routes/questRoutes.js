@@ -7,7 +7,9 @@ import {
   getPendingOffersForQuest,
   completeQuest,
   fetchLatestQuest,
-  getNearbyQuests
+  getNearbyQuests,
+  getPostedQuestsByUser,
+  withdrawFromQuest
 } from '../controllers/questController.js';
 
 const router = express.Router();
@@ -20,5 +22,7 @@ router.get('/pending/:questId', getPendingOffersForQuest);
 router.post('/complete', completeQuest);
 router.get('/latest/:requesterId', fetchLatestQuest);
 router.post('/nearby',getNearbyQuests);
+router.get('/posted/:userId', getPostedQuestsByUser);
+router.post('/withdraw', withdrawFromQuest);
 
 export default router;

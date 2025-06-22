@@ -3,7 +3,7 @@ import {
   updateUserProgress,
   getUserProgress,
   resetUserProgress,
-} from 'Backend/controllers/levelController.js'
+} from '../controllers/levelController.js'
 
 const router = express.Router()
 
