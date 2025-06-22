@@ -159,20 +159,26 @@ export const getPendingOffersForQuest = async (req, res) => {
 }
 
 
-export async function completeQuest({ questId, heroId }) {
-  // 1. Fetch the quest to get XP, category, difficulty, etc.
+export async function completeQuest(req, res) {
+  const { questId, heroId } = req.body;
+
+  if (!questId || !heroId) {
+    return res.status(400).json({ success: false, error: 'Missing questId or heroId.' });
+  }
+
+  // 1. Fetch quest info
   const { data: questData, error: questError } = await supabase
     .from('quests')
-    .select('xp, category')
+    .select('id, xp, category, requester_id')
     .eq('id', questId)
     .single();
 
-  if (questError) {
-    console.error('Error fetching quest:', questError.message);
-    return;
+  if (questError || !questData) {
+    console.error('Error fetching quest:', questError?.message);
+    return res.status(404).json({ success: false, error: 'Quest not found.' });
   }
 
-  const { xp: questXp, category } = questData;
+  const { xp: questXp, category, requester_id } = questData;
 
   // 2. Mark quest as completed
   const { error: updateQuestError } = await supabase
@@ -182,24 +188,37 @@ export async function completeQuest({ questId, heroId }) {
 
   if (updateQuestError) {
     console.error('Error marking quest complete:', updateQuestError.message);
-    return;
+    return res.status(500).json({ success: false, error: updateQuestError.message });
   }
 
-  // 3. Delegate XP and level logic to level controller
+  // 3. Award XP to the hero
   try {
-    await updateUserProgress({
-      params: { userId: heroId },
-      body: { category, xpGained: questXp },
-    }, {
-      status: () => ({ json: () => {} }) // mock response object (if calling directly)
-    });
+    await updateUserProgress(
+      { params: { userId: heroId }, body: { category, xpGained: questXp } },
+      { status: () => ({ json: () => {} }) }
+    );
   } catch (err) {
     console.error('Error updating user progress:', err.message);
   }
 
-  console.log(`✅ Quest complete. ${questXp} XP awarded to hero ${heroId}.`);
-}
+  // 4. Fetch updated posted quests for the requester
+  const { data: updatedQuests, error: postedError } = await supabase
+    .from('quests')
+    .select('*')
+    .eq('requester_id', requester_id)
+    .order('created_at', { ascending: false });
 
+  if (postedError) {
+    console.error('Error fetching updated posted quests:', postedError.message);
+    return res.status(500).json({ success: false, error: postedError.message });
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: `Quest complete. ${questXp} XP awarded to hero.`,
+    data: updatedQuests,
+  });
+}
 
 
 export async function fetchLatestQuest(requesterId) {
@@ -282,6 +301,7 @@ export const getPostedQuestsByUser = async (req, res) => {
 
   return res.status(200).json({ success: true, data });
 };
+
 // Get Quest for Hero
 export const getPendingQuestForHero = async (req, res) => {
   const { heroId } = req.params;

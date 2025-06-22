@@ -2,69 +2,48 @@
 import { supabase } from '../Supabase/supabaseClient.js'
 import { addXP } from '../util/levelsystem.js'
 
-export async function updateUserProgress(req, res) {
+export async function updateUserProgress(req, res = null) {
+  const { userId } = req.params;
+  const { category, xpGained } = req.body;
+
   try {
-    const userId = req.params.userId
-    const { category, xpGained } = req.body
-
-    if (!category || !xpGained) {
-      return res.status(400).json({ error: 'Missing category or xpGained' })
-    }
-
-    const { data: user, error: fetchError } = await supabase
+    // Fetch current user data
+    const { data: user, error: userError } = await supabase
       .from('users')
       .select('*')
       .eq('id', userId)
-      .single()
+      .single();
 
-    if (fetchError || !user) {
-      return res.status(404).json({ error: 'User not found' })
+    if (userError) {
+      console.error('Failed to fetch user:', userError.message);
+      const errorRes = { success: false, error: userError.message };
+      return res ? res.status(500).json(errorRes) : errorRes;
     }
 
-    const updatedStats = { ...user.category_stats }
-    updatedStats[category] = (updatedStats[category] || 0) + 1
-
-    const { level, xp } = addXP({ level: user.level, xp: user.xp }, xpGained)
-
-    // 🆕 Fetch badge rules from Supabase
-    const badges = [...user.badges]
-
-    const { data: badgeRules, error: badgeError } = await supabase
-      .from('badge_rules')
-      .select('milestone, badge_name')
-      .eq('category', category)
-
-      if (badgeError) {
-        console.error('Error fetching badge rules:', badgeError.message)
-      } else {
-        badgeRules.forEach(({ milestone, badge_name }) => {
-          if (updatedStats[category] === milestone && !user.badges.includes(badge_name)) {
-            badges.push(badge_name)
-          }
-        })
-      }
-
+    const newXp = (user.xp || 0) + xpGained;
+    const newLevel = Math.floor(newXp / 100) + 1;
 
     const { error: updateError } = await supabase
       .from('users')
-      .update({
-        level,
-        xp,
-        category_stats: updatedStats,
-        badges,
-      })
-      .eq('id', userId)
+      .update({ xp: newXp, level: newLevel })
+      .eq('id', userId);
 
     if (updateError) {
-      return res.status(500).json({ error: 'Failed to update user progress' })
+      console.error('Failed to update XP:', updateError.message);
+      const errorRes = { success: false, error: updateError.message };
+      return res ? res.status(500).json(errorRes) : errorRes;
     }
 
-    res.json({ level, xp, category_stats: updatedStats, badges })
-  } catch (error) {
-    console.error('Error in updateUserProgress:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    const successRes = { success: true, xp: newXp, level: newLevel };
+    return res ? res.status(200).json(successRes) : successRes;
+
+  } catch (err) {
+    console.error('Error in updateUserProgress:', err.message);
+    const errorRes = { success: false, error: err.message };
+    return res ? res.status(500).json(errorRes) : errorRes;
   }
 }
+
 
 export async function getUserProgress(req, res) {
   try {

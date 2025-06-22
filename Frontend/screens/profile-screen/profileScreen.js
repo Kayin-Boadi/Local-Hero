@@ -14,32 +14,65 @@ import {
 import { useAuth } from '../../utils/authContext';
 import ProgressBar from 'react-native-progress/Bar'; // make sure to install this or substitute your progress bar
 import LoginScreen from './loginScreen'; // your login form component
+import api from '../../utils/api.js';
 
 export default function ProfileScreen() {
   const { user, logout } = useAuth();
   const [postedJobs, setPostedJobs] = useState([]);
 
-  // Fetch posted jobs (mock or API call)
-  useEffect(() => {
-    async function fetchPostedJobs() {
-      // TODO: Replace with your API call to get jobs posted by user
-      const mockJobs = [
-        { id: '1', title: 'Help needed moving furniture', status: 'pending' },
-        { id: '2', title: 'Grocery pickup', status: 'completed' },
-      ];
-      setPostedJobs(mockJobs);
+  const fetchPostedJobs = async () => {
+    try {
+      const res = await api.get(`/api/quests/posted/${user.id}`);
+      const allJobs = res.data.data || [];
+      const activeJobs = allJobs.filter(job => job.status !== 'completed');
+      setPostedJobs(activeJobs);
+    } catch (err) {
+      console.error('Error fetching posted jobs:', err.message);
     }
-    fetchPostedJobs();
-  }, []);
-
-  const handleConfirmJob = (jobId) => {
-    Alert.alert('Confirm Job', `Mark job ${jobId} as completed?`);
-    // TODO: Call API to confirm completion
   };
+
+  useEffect(() => {
+    if (user?.id) {
+      fetchPostedJobs();
+    }
+  }, [user?.id]);
+
+  const handleConfirmJob = async (jobId) => {
+    try {
+      Alert.alert('Confirm Job', `Mark job ${jobId} as completed?`, [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'OK',
+          onPress: async () => {
+            const res = await api.post('/api/quests/complete', {
+              questId: jobId,
+              heroId: user.id, // or use assigned_hero_id if this is the requester
+            });
+
+            if (res.data.success) {
+              Alert.alert('Quest marked as complete');
+              // Refresh the job list
+              fetchPostedJobs(); // Make sure this function is in scope
+            } else {
+              Alert.alert('Error', res.data.error || 'Failed to complete quest');
+            }
+          },
+        },
+      ]);
+    } catch (err) {
+      console.error('Error completing quest:', err.message);
+      Alert.alert('Error', 'Something went wrong.');
+    }
+  };
+
+
 
   const handleDenyJob = (jobId) => {
     Alert.alert('Deny Completion', `Mark job ${jobId} as incomplete?`);
-    // TODO: Call API to deny completion
+    // TODO: Call API to deny completion  
   };
 
   if (!user) {
