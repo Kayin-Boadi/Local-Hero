@@ -203,7 +203,7 @@ export async function getOpenQuests() {
   return data;
 }
 
-import { updateUserProgress } from './levelController.js'; // or correct path
+import { updateUserProgress } from 'Backend\controllers\levelController.js' ; 
 
 export async function completeQuest({ questId, heroId }) {
   // 1. Fetch the quest to get XP, category, difficulty, etc.
