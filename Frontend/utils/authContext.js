@@ -62,8 +62,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    setUser(null);
+  const logout = async () => {
+    try {
+      await AsyncStorage.removeItem('accessToken');
+      delete api.defaults.headers.common['Authorization'];
+      setUser(null);
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
   };
 
   return (

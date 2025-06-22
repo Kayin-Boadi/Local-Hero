@@ -15,7 +15,7 @@ router.post('/signup', signUpWithProfile);
 router.post('/login', loginUser);
 
 // Profile routes
-router.get('/users/me', getCurrentUser);  
+router.get('/me', getCurrentUser);  
 router.get('/users/:id', getUserProfile);       // GET user profile by ID
 router.patch('/users/:id', updateUserProfile);  // Update user profile
 router.get('/users', getAllUsers);              // List all users (for leaderboard/admin)

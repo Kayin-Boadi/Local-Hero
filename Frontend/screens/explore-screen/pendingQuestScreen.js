@@ -5,8 +5,10 @@ import {
 import MapView, { Marker } from 'react-native-maps';
 import * as Location from 'expo-location';
 import api from '../../utils/api';
+import { useAuth } from '@/utils/authContext';
 
 export default function PendingQuestScreen({ quest, onComplete }) {
+  const { user } = useAuth();
   const [region, setRegion] = useState(null);
 
   useEffect(() => {
@@ -29,8 +31,8 @@ export default function PendingQuestScreen({ quest, onComplete }) {
   const withdrawFromQuest = async () => {
     try {
       const res = await api.post('/api/quests/withdraw', {
-        heroId: quest.heroId,     // or quest.heroId or user.id if you still have it
-        questId: quest.quests.id, // keep your quest id access here
+        heroId: user.id,
+        questId: quest.id,
       });
 
       if (res.data.success) {
