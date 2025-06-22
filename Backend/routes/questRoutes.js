@@ -7,7 +7,8 @@ import {
   getPendingOffersForQuest,
   completeQuest,
   fetchLatestQuest,
-  getNearbyQuests
+  getNearbyQuests,
+  getPendingQuestForHero
 } from '../controllers/questController.js';
 
 const router = express.Router();
@@ -17,6 +18,7 @@ router.post('/offer', offerToHelp);
 router.post('/approve', approveHeroOffer);
 router.get('/open', getOpenQuests);
 router.get('/pending/:questId', getPendingOffersForQuest);
+router.get('/pending/hero/:heroId', getPendingQuestForHero);
 router.post('/complete', completeQuest);
 router.get('/latest/:requesterId', fetchLatestQuest);
 router.post('/nearby',getNearbyQuests);

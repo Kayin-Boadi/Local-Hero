@@ -42,12 +42,12 @@ export default function HomeScreen() {
   ];
 
   if (!user) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Text style={{ textAlign: 'center', marginTop: 50 }}>Loading...</Text>
-      </SafeAreaView>
-    );
-  }
+  return (
+    <SafeAreaView style={styles.container}>
+      <Text style={{ textAlign: 'center', marginTop: 50 }}>Loading...</Text>
+    </SafeAreaView>
+  );
+}
 
 
   const renderItem = ({ item }) => {

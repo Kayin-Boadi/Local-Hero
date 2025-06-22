@@ -120,8 +120,6 @@ export const getOpenQuests = async (_req, res) => {
   return res.status(200).json({ success: true, data });
 };
 
-
-
 // 🔍 Get pending hero offers for a quest
 export const getPendingOffersForQuest = async (req, res) => {
   const { questId } = req.params;
@@ -235,3 +233,52 @@ export const getNearbyQuests = async (req, res) => {
 
   res.status(200).json(data);
 };
+
+// Get Quest for Hero
+export const getPendingQuestForHero = async (req, res) => {
+  const { heroId } = req.params;
+  if (!heroId) return res.status(400).json({ success: false, error: 'Missing heroId' });
+
+  const { data, error } = await supabase
+    .from('quest_offers')
+    .select(`
+      status,
+      quests (
+        id,
+        title,
+        description,
+        category,
+        difficulty,
+        location,
+        requester_id
+      )
+    `)
+    .eq('hero_id', heroId)
+    .in('status', ['pending', 'accepted'])
+    .limit(1);
+
+  if (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+
+  if (!data.length) {
+    return res.status(200).json({ success: true, data: null });
+  }
+
+  const offer = data[0];
+  const quest = offer.quests;
+
+  // Safely extract latitude/longitude from location
+  const [longitude, latitude] = quest?.location?.coordinates || [];
+
+  return res.status(200).json({
+    success: true,
+    data: {
+      ...quest,
+      status: offer.status,
+      latitude,
+      longitude,
+    },
+  });
+};
+
