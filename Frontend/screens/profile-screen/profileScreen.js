@@ -1,39 +1,50 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+import { View, Text, Image, Button, StyleSheet } from 'react-native';
+import { useAuth } from '../../utils/authContext';
+import LoginScreen from './loginScreen'; // your login form component
 
 export default function ProfileScreen() {
+  const { user, logout } = useAuth();
+
+  // If no user logged in, show the login screen
+  if (!user) {
+    return <LoginScreen />;
+  }
+
+  // Otherwise show profile info
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Brand Analytic</Text>
-        <Text style={styles.subtitle}>Track your brand analytics.</Text>
-      </View>
-    </SafeAreaView>
+    <View style={styles.container}>
+      <Image source={{ uri: user.profilePic || 'https://i.imgur.com/N6fJJKB.png' }} style={styles.avatar} />
+      <Text style={styles.username}>{user.username}</Text>
+      <Text style={styles.level}>Level {user.level}</Text>
+
+      {/* Add more profile details here as you like */}
+
+      <Button title="Logout" onPress={logout} />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
+  container: {
     flex: 1,
+    padding: 20,
+    alignItems: 'center',
     backgroundColor: '#fff',
   },
-  container: {
-    padding: 20,
-  },
-  backButton: {
+  avatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     marginBottom: 20,
   },
-  backText: {
-    fontSize: 16,
-    color: '#007aff',
-  },
-  title: {
+  username: {
     fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    fontWeight: '700',
   },
-  subtitle: {
-    fontSize: 16,
-    color: '#666',
+  level: {
+    fontSize: 18,
+    marginTop: 8,
+    color: '#555',
   },
 });

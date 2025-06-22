@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 
 const Backend_Url = Constants.expoConfig?.extra?.Backend_Url;
-
+console.log(Backend_Url);
 // instance for normal requests
 const api = axios.create({
   baseURL: Backend_Url,

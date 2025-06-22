@@ -11,7 +11,11 @@ import {
   Pressable,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
+import { Ionicons } from '@expo/vector-icons';
+import * as Location from 'expo-location';
+import { useAuth } from '../../utils/authContext';
 import api from '../../utils/api';
+import { router } from 'expo-router';
 
 const { height } = Dimensions.get('window');
 
@@ -28,60 +32,114 @@ export default function ExploreScreen() {
   const mapRef = useRef(null);
 
   useEffect(() => {
+    const initializeMap = async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        console.warn('Permission to access location was denied');
+        return;
+      }
+
+      const location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+
+      setRegion({
+        latitude,
+        longitude,
+        latitudeDelta: 0.05,
+        longitudeDelta: 0.05,
+      });
+    };
+
+    initializeMap();
+  }, []);
+
+  const reverseGeocode = async (lat, lng) => {
+    try {
+      const results = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+      return results?.[0]?.city || 'Unknown City';
+    } catch {
+      return 'Unknown City';
+    }
+  };
+
+
+  useEffect(() => {
     const fetchQuests = async () => {
       try {
-        // const res = await api.get('/api/tasks');
-        // const data = res.data;
-        const data = [
-          {
-            _id: '1',
-            title: 'Clean the community park',
-            category: 'Environment',
-            latitude: 43.6542,
-            longitude: -79.3802,
-          },
-          {
-            _id: '2',
-            title: 'Distribute flyers for fundraiser',
-            category: 'Event',
-            latitude: 43.6522,
-            longitude: -79.3872,
-          },
-          {
-            _id: '3',
-            title: 'Grocery run for elderly',
-            category: 'Errand',
-            latitude: 43.6515,
-            longitude: -79.382,
-          },
-        ];
-        setQuests(data);
+        const res = await api.get('/api/quests/open');
+        const questData = res.data.data || [];
+        const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+        const parsed = questData.map((q) => {
+          return {
+            _id: q.id,
+            title: q.title,
+            username: q.username || 'Unknown',
+            description: q.description,
+            category: q.category?.map(capitalize).join(', ') || 'Misc',
+            difficulty: (() => {
+              try {
+                const parsed = typeof q.difficulty === 'string' ? JSON.parse(q.difficulty) : q.difficulty;
+                // parsed is an object like { intelligence: "hard" }
+                const values = Object.values(parsed || {});
+                // Take all values, capitalize them, join by comma (in case multiple)
+                return values.map(v => v.charAt(0).toUpperCase() + v.slice(1)).join(', ');
+              } catch (e) {
+                return 'Unknown';
+              }
+            })(),
+            latitude: q.latitude,
+            longitude: q.longitude,
+          };
+        });
+        
+        setQuests(parsed);
       } catch (err) {
-        console.error(err);
+        console.error('Failed to load quests', err);
       }
     };
 
     fetchQuests();
   }, []);
 
-  const panToQuest = (quest) => {
+
+  const panToQuest = async (quest) => {
     if (mapRef.current) {
-      mapRef.current.animateToRegion(
-        {
-          latitude: quest.latitude,
-          longitude: quest.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        },
-        500
-      );
+      mapRef.current.animateToRegion({
+        latitude: quest.latitude,
+        longitude: quest.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      }, 500);
     }
-    setSelectedQuest(quest);
+
+    const city = await reverseGeocode(quest.latitude, quest.longitude);
+    setSelectedQuest({ ...quest, city });
   };
+
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
+        <TouchableOpacity
+            onPress={() => router.push('/routes/exploreRoute/createQuest')}
+            style={{
+              position: 'absolute',
+              top: 20,
+              right: 20,
+              zIndex: 10,
+              backgroundColor: '#fff',
+              borderRadius: 24,
+              padding: 10,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.2,
+              shadowRadius: 4,
+              elevation: 5,
+            }}
+            >
+            <Ionicons name="add" size={28} color="#111" />
+        </TouchableOpacity>
+
         <MapView ref={mapRef} style={styles.map} region={region}>
           {quests.map((quest) => (
             <Marker
@@ -121,10 +179,11 @@ export default function ExploreScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>{selectedQuest?.title}</Text>
-            <Text style={styles.modalCategory}>{selectedQuest?.category}</Text>
-            <Text style={styles.modalText}>
-              Approx. Location: {selectedQuest?.latitude.toFixed(4)}, {selectedQuest?.longitude.toFixed(4)}
-            </Text>
+            <Text style={styles.modalSub}>Posted by: {selectedQuest?.username}</Text>
+            <Text style={styles.modalCategory}>Category: {selectedQuest?.category}</Text>
+            <Text style={styles.modalCategory}>Difficulty: {selectedQuest?.difficulty}</Text>
+            <Text style={styles.modalText}>Approx. Location: {selectedQuest?.city}</Text>
+            <Text style={styles.modalText}>{selectedQuest?.description}</Text>
             <View style={styles.modalButtons}>
               <Pressable
                 style={[styles.modalButton, { backgroundColor: '#4CAF50' }]}
