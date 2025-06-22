@@ -57,9 +57,10 @@ export default function ExploreScreen() {
   useEffect(() => {
     const fetchQuests = async () => {
       try {
+        console.log("PP");
         const res = await api.get('/api/quests/open');
         const questData = res.data.data || [];
-
+        console.log(questData);
         const parsed = questData.map((q) => ({
           _id: q.id,
           title: q.title,

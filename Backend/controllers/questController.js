@@ -1,5 +1,6 @@
-import { supabase } from '../Supabase/supabaseClient.js';
-import { addXP } from '../progression/levelsystem.js';
+// questController.js
+import { addXP } from '../util/levelsystem.js';
+import { supabase } from '../Supabase/supabaseClient.js'
 
 const xpTable = {
   strength: { light: 10, medium: 25, heavy: 50 },
@@ -23,11 +24,14 @@ function calculateXp(categories = [], difficulties = {}) {
 // 🎯 Create a quest
 export const createQuest = async (req, res) => {
   const { title, description, categories, difficulties, requesterId } = req.body;
-  if (!title || !categories || !requesterId) {
+  if (!title || !categories || !requesterId || !longitude || !latitude) {
     return res.status(400).json({ success: false, error: 'Missing required fields.' });
   }
 
   const xp = calculateXp(categories, difficulties);
+
+  const point = `POINT(${longitude} ${latitude})`;
+
   const { error } = await supabase.from('quests').insert({
     title,
     description,
@@ -35,7 +39,8 @@ export const createQuest = async (req, res) => {
     difficulty: JSON.stringify(difficulties),
     xp,
     requester_id: requesterId,
-    status: 'open',
+    availability: false,
+    location: point,
   });
 
   if (error) {
@@ -110,7 +115,7 @@ export const getOpenQuests = async (_req, res) => {
   if (error) {
     return res.status(500).json({ success: false, error: error.message });
   }
-
+  console.log(data);
   return res.status(200).json({ success: true, data });
 };
 
@@ -206,3 +211,18 @@ export const fetchLatestQuest = async (req, res) => {
 
   return res.status(200).json({ success: true, data: data[0] });
 };
+
+export async function getNearbyQuests({ lat, lng, radiusKm = 10 }) {
+  const { data, error } = await supabase.rpc('get_nearby_quests', {
+    user_lat: lat,
+    user_lng: lng,
+    radius_km: radiusKm,
+  });
+
+  if (error) {
+    console.error('Error fetching nearby quests:', error.message);
+    return [];
+  }
+
+  return data;
+}
