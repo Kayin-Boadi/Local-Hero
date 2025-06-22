@@ -30,16 +30,16 @@ export async function updateUserProgress(req, res) {
     const badges = [...user.badges]
 
     const { data: badgeRules, error: badgeError } = await supabase
-      .from('badge_rules')
-      .select('milestone, badge_name')
+      .from('badges')
+      .select('milestone, name')
       .eq('category', category)
 
       if (badgeError) {
         console.error('Error fetching badge rules:', badgeError.message)
       } else {
-        badgeRules.forEach(({ milestone, badge_name }) => {
-          if (updatedStats[category] === milestone && !user.badges.includes(badge_name)) {
-            badges.push(badge_name)
+        badgeRules.forEach(({ milestone, name }) => {
+          if (updatedStats[category] === milestone && !user.badges.includes(name)) {
+            badges.push(name)
           }
         })
       }
