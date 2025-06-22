@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import ProgressBar from 'react-native-progress/Bar';
 import { useAuth } from '../../utils/authContext';
+import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 
@@ -42,12 +43,26 @@ export default function HomeScreen() {
   ];
 
   if (!user) {
-  return (
-    <SafeAreaView style={styles.container}>
-      <Text style={{ textAlign: 'center', marginTop: 50 }}>Please login to view</Text>
-    </SafeAreaView>
-  );
-}
+    const router = useRouter();
+
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        router.replace('/profile');
+      }, 2000);
+
+      return () => clearTimeout(timer);
+    }, []);
+
+    return (
+     <SafeAreaView style={styles.container}>
+        <Text style={{ textAlign: 'center', marginTop: 50 }}>
+         Please login to view
+        </Text>
+     </SafeAreaView>
+   );
+  }
+
+ 
 
 
   const renderItem = ({ item }) => {
