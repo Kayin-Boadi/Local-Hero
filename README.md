@@ -65,4 +65,4 @@ npx expo start
 
 - **[Your Name]** — 
 - **[Kayin Boadi]** — Backend/API & Database  
-- **[Teammate Name]** —  
+- **[Fletcher Lorenzo]** —  Backend
